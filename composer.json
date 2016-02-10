@@ -1,0 +1,22 @@
+{
+    "name": "bebetter/exception-alert",
+    "description": "Laravel 5 alert on exception",
+    "keywords": ["exception","error"],
+    "require": {
+        "php": ">=5.4.0",
+        "illuminate/support": "5.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bebetter\\ExceptionAlert\\": "src/"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Deepak Kumar",
+            "email": "deepakkumar222@gmail.com",
+        }
+    ],
+    "minimum-stability": "stable"
+}
