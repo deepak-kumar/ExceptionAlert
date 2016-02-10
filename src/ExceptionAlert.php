@@ -1,0 +1,133 @@
+<?php
+
+namespace Bebetter\ExceptionAlert;
+
+use Exception;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Session;
+
+
+class ExceptionAlert
+{
+    
+    private $config = [];
+    
+    public function __construct()
+    {
+        $this->config['except'] = config('bebetter.exception-alert.except', []);
+        $this->config['email_to'] = config('bebetter.exception-alert.email_to');
+        $this->config['email_from'] = config('bebetter.exception-alert.email_from');
+        $this->config['email_from_name'] = config('bebetter.exception-alert.email_from_name', 'Exception Alert');
+        $this->config['count'] = config('bebetter.exception-alert.lines_count', 12);
+        
+        if (!$this->config['email_from']) {
+            $this->config['email_from'] = 'exception-alert@'. Request::server('SERVER_NAME');
+        }
+    } // end __construct
+    
+    public function send($exception)
+    {
+        // just to make sure that package dont break all the things
+        try {
+            $config = $this->config;
+            if (!$config['email_to']) {
+                return;
+            }
+            
+            $data = $this->getEmailData($exception);
+            
+            if ($this->isSkipException($data['class'])) {
+                return;
+            }
+            
+            Mail::send('exception-alert::main', $data, function($message) use($data, $config) {
+                $subject = '[' . $data['class'] .'] @ '. $data['host'] .': ' . $data['exception'];
+                
+                // to protect from gmail's anchors automatic generating
+                $message->setBody(
+                    preg_replace(
+                        ['~\.~', '~http~'], 
+                        ['<span>.</span>', '<span>http</span>'], 
+                        $message->getBody()
+                    )
+                );
+                
+                $message->to($config['email_to'])
+                        ->from($config['email_from'], $config['email_from_name'])
+                        ->subject($subject);
+            });
+        } catch (Exception $e) {
+            Log::error($e);
+        }
+    } // end send
+    
+    public function isSkipException($exceptionClass)
+    {
+        return in_array($exceptionClass, $this->config['except']);
+    } // end isSkipException
+    
+    private function getEmailData($exception)
+    {
+        $data = [];
+        
+        $data['host']    = Request::server('SERVER_NAME');
+        $data['method']  = Request::method();
+        $data['fullUrl'] = Request::fullUrl();
+        $data['exception'] = $exception->getMessage();
+        $data['error'] = $exception->getTraceAsString();
+        $data['line']  = $exception->getLine();
+        $data['file']  = $exception->getFile();
+        $data['class'] = get_class($exception);
+        $data['storage'] = array(
+            'SERVER'  => Request::server(),
+            'GET'     => Request::query(),
+            'POST'    => $_POST,
+            'FILE'    => Request::file(),
+            'OLD'     => Request::hasSession() ? Request::old() : [],
+            'COOKIE'  => Request::cookie(),
+            'SESSION' => Request::hasSession() ? Session::all() : [], 
+            'HEADERS' => Request::header(),
+        );
+        
+        $data['storage'] = array_filter($data['storage']);
+        
+        $count = $this->config['count'];
+        $lines = file($data['file']);
+        $data['exegutor'] = [];
+        
+        for ($i = -1 * abs($count); $i <= abs($count); $i++) {
+            $data['exegutor'][] = $this->getLineInfo($lines, $data['line'], $i);
+        }
+        $data['exegutor'] = array_filter($data['exegutor']);
+        
+        // to make symfony exception more readable
+        if ($data['class'] == 'Symfony\Component\Debug\Exception\FatalErrorException') {
+            preg_match("~^(.+)' in ~", $data['exception'], $matches);
+            if (isset($matches[1])) {
+                $data['exception'] = $matches[1];
+            }
+        }
+        
+        return $data;
+    } // end getEmailData
+    
+    private function getLineInfo($lines, $line, $i)
+    {
+        $currentLine = $line + $i;
+        // cuz array starts with 0, when file lines start count from 1
+        $index = $currentLine - 1;
+        
+        if (!array_key_exists($index, $lines)) {
+            return;
+        }
+        return [
+            'line' => '<span style="color:#aaaaaa;">'. $currentLine .'.</span> '. SyntaxHighlight::process($lines[$index]),
+            'wrap_left' => $i ? '' : '<span style="color: #F5F5F5; background-color: #5A3E3E; width: 100%; display: block;">',
+            'wrap_right' => $i ? '' : '</span>',
+        ];
+    }
+
+}
+

@@ -11,7 +11,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../config/log-envelope.php' => config_path('bebetter.log-envelope.php'),
+            __DIR__.'/../config/exception-alert.php' => config_path('bebetter.exception-alert.php'),
         ]);
         
         $this->app['view']->addNamespace('log-envelope', __DIR__ . '/../resources/views');
@@ -23,7 +23,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register()
     {
         config([
-            'config/bebetter.log-envelope.php',
+            'config/bebetter.exception-alert.php',
         ]);
         
         $this->app['bebetter.exception-alert'] = $this->app->share(function($app) {
