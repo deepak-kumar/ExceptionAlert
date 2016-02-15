@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\Session;
 
 class ExceptionAlert
 {
-    
+
     private $config = [];
-    
+
     public function __construct()
     {
         $this->config['except'] = config('bebetter.exception-alert.except', []);
@@ -21,12 +21,12 @@ class ExceptionAlert
         $this->config['email_from'] = config('bebetter.exception-alert.email_from');
         $this->config['email_from_name'] = config('bebetter.exception-alert.email_from_name', 'Exception Alert');
         $this->config['count'] = config('bebetter.exception-alert.lines_count', 12);
-        
+
         if (!$this->config['email_from']) {
             $this->config['email_from'] = 'exception-alert@'. Request::server('SERVER_NAME');
         }
     } // end __construct
-    
+
     public function send($exception)
     {
         // just to make sure that package dont break all the things
@@ -35,25 +35,25 @@ class ExceptionAlert
             if (!$config['email_to']) {
                 return;
             }
-            
+
             $data = $this->getEmailData($exception);
-            
+
             if ($this->isSkipException($data['class'])) {
                 return;
             }
-            
+
             Mail::send('exception-alert::main', $data, function($message) use($data, $config) {
                 $subject = '[' . $data['class'] .'] @ '. $data['host'] .': ' . $data['exception'];
-                
+
                 // to protect from gmail's anchors automatic generating
                 $message->setBody(
                     preg_replace(
-                        ['~\.~', '~http~'], 
-                        ['<span>.</span>', '<span>http</span>'], 
+                        ['~\.~', '~http~'],
+                        ['<span>.</span>', '<span>http</span>'],
                         $message->getBody()
                     )
                 );
-                
+
                 $message->to($config['email_to'])
                         ->from($config['email_from'], $config['email_from_name'])
                         ->subject($subject);
@@ -62,16 +62,16 @@ class ExceptionAlert
             Log::error($e);
         }
     } // end send
-    
+
     public function isSkipException($exceptionClass)
     {
         return in_array($exceptionClass, $this->config['except']);
     } // end isSkipException
-    
+
     private function getEmailData($exception)
     {
         $data = [];
-        
+
         $data['host']    = Request::server('SERVER_NAME');
         $data['method']  = Request::method();
         $data['fullUrl'] = Request::fullUrl();
@@ -87,21 +87,21 @@ class ExceptionAlert
             'FILE'    => Request::file(),
             'OLD'     => Request::hasSession() ? Request::old() : [],
             'COOKIE'  => Request::cookie(),
-            'SESSION' => Request::hasSession() ? Session::all() : [], 
+            'SESSION' => Request::hasSession() ? Session::all() : [],
             'HEADERS' => Request::header(),
         );
-        
+
         $data['storage'] = array_filter($data['storage']);
-        
+
         $count = $this->config['count'];
         $lines = file($data['file']);
         $data['exegutor'] = [];
-        
+
         for ($i = -1 * abs($count); $i <= abs($count); $i++) {
             $data['exegutor'][] = $this->getLineInfo($lines, $data['line'], $i);
         }
         $data['exegutor'] = array_filter($data['exegutor']);
-        
+
         // to make symfony exception more readable
         if ($data['class'] == 'Symfony\Component\Debug\Exception\FatalErrorException') {
             preg_match("~^(.+)' in ~", $data['exception'], $matches);
@@ -109,16 +109,16 @@ class ExceptionAlert
                 $data['exception'] = $matches[1];
             }
         }
-        
+
         return $data;
     } // end getEmailData
-    
+
     private function getLineInfo($lines, $line, $i)
     {
         $currentLine = $line + $i;
         // cuz array starts with 0, when file lines start count from 1
         $index = $currentLine - 1;
-        
+
         if (!array_key_exists($index, $lines)) {
             return;
         }
@@ -130,4 +130,3 @@ class ExceptionAlert
     }
 
 }
-

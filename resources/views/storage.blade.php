@@ -7,7 +7,7 @@
         <table style="border-collapse:collapse;">
             <tbody>
             @foreach ($data as $key => $val)
-                <tr>
+                <tr style="margin-top:1px;margin-bottom:1px;">
                     <td style="padding: 0; vertical-align: top; text-align: right;">
                         <pre style="margin: 0; background: #272727; color: #aaaaaa; font-family: monospace; font-size: 12px; padding: 5px 0px 5px 0px; white-space: nowrap; word-break: keep-all;">{{ $key }}</pre>
                     </td>

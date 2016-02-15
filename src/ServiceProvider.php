@@ -14,7 +14,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
             __DIR__.'/../config/exception-alert.php' => config_path('bebetter.exception-alert.php'),
         ]);
         
-        $this->app['view']->addNamespace('log-envelope', __DIR__ . '/../resources/views');
+        $this->app['view']->addNamespace('exception-alert', __DIR__ . '/../resources/views');
         
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('ExceptionAlert', 'Bebetter\ExceptionAlert\Facade');
