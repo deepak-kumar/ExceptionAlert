@@ -38,5 +38,6 @@ public function report(Exception $e)
 //...
 ```
 
+
 ## License
 The MIT License (MIT). Please see [LICENSE](https://github.com/deepak-kumar/ExceptionAlert/blob/master/LICENSE) for more information.
